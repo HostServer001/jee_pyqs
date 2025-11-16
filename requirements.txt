@@ -1,0 +1,5 @@
+jee_data_base
+hdbscan
+numpy
+requests
+tqdm
