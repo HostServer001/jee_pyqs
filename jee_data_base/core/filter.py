@@ -138,9 +138,10 @@ class Filter:
         return self.current_set
     
     def render_chap_last5yrs(self,destination:str,chap_name:str,skim:bool=True)->None:
+        self.reset()
         all_q = self.by_chapter(chap_name).by_n_last_yrs(5).get()
         os.mkdir(str(Path(destination)/chap_name))
-        print(self.get_possible_filter_values()["topic"])
+#        print(self.get_possible_filter_values()["topic"])
         for topic in self.get_possible_filter_values()["topic"]:
             file_path = str(Path(destination)/chap_name/f"{topic}.html")
             self.current_set = all_q
