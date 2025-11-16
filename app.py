@@ -6,11 +6,12 @@ from zipfile import ZipFile
 import json
 
 from jee_data_base import DataBase, Filter, pdfy
+import components as components
 
 
-GA_TRACKING_ID = "G-XXXXXXX"
 
-st.markdown("""<!-- Google tag (gtag.js) -->
+components.html("""
+<!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-VMLMXMCJLK"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -18,7 +19,7 @@ st.markdown("""<!-- Google tag (gtag.js) -->
   gtag('js', new Date());
 
   gtag('config', 'G-VMLMXMCJLK');
-</script>""", unsafe_allow_html=True)
+</script>""", height=0)
 # -------------------------------
 # Init session state
 # -------------------------------
