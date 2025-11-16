@@ -18,7 +18,7 @@ st.html("""
   gtag('js', new Date());
 
   gtag('config', 'G-VMLMXMCJLK');
-</script>""", height=0)
+</script>""")
 # -------------------------------
 # Init session state
 # -------------------------------
