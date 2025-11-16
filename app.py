@@ -36,7 +36,7 @@ def init_state():
 
 
 init_state()
-st.set_page_config(page_title="ExamGoal Tool", layout="wide")
+st.set_page_config(page_title="Question Overflow 📚", layout="wide")
 
 
 # ============================================================
