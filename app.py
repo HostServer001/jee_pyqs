@@ -91,7 +91,7 @@ def page_zip_exporter():
     if st.button("➡️ Go to Advanced Explorer"):
         st.session_state.page = "advanced"
         st.rerun()
-    st.markdown("---
+    st.markdown("""---
 
 ##About
 
@@ -99,7 +99,7 @@ This tool provides 14,000+ JEE Mains PYQs with fast filtering, clustering, and c
 Questions are semantically embedded for grouping similar problems.
 
 The data base was obtained by reverse engineering a popular JEE prep website.
-")
+""")
 
 
 # ============================================================
