@@ -93,7 +93,7 @@ def page_zip_exporter():
         st.rerun()
     st.markdown("""---
 
-##About
+ℹ️About
 
 This tool provides 14,000+ JEE Mains PYQs with fast filtering, clustering, and clean HTML export.
 Questions are semantically embedded for grouping similar problems.
@@ -265,6 +265,17 @@ def page_advanced_explorer():
     if st.button("⬅️ Back to ZIP Exporter"):
         st.session_state.page = "zip_exporter"
         st.rerun()
+    st.markdown("""
+---
+
+ℹ️About
+
+This tool provides 14,000+ JEE Mains PYQs with fast filtering, clustering, and clean HTML export.
+Questions are semantically embedded for grouping similar problems.
+
+The data base was obtained by reverse engineering a popular JEE prep website.
+
+""")
 
 
 # ============================================================
