@@ -9,17 +9,16 @@ from jee_data_base import DataBase, Filter, pdfy
 #import components as components
 
 
+st.html("""
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-VMLMXMCJLK"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
 
-# components.html("""
-# <!-- Google tag (gtag.js) -->
-# <script async src="https://www.googletagmanager.com/gtag/js?id=G-VMLMXMCJLK"></script>
-# <script>
-#   window.dataLayer = window.dataLayer || [];
-#   function gtag(){dataLayer.push(arguments);}
-#   gtag('js', new Date());
-
-#   gtag('config', 'G-VMLMXMCJLK');
-# </script>""", height=0)
+  gtag('config', 'G-VMLMXMCJLK');
+</script>""", height=0)
 # -------------------------------
 # Init session state
 # -------------------------------
