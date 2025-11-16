@@ -1,3 +1,4 @@
+streamlit
 jee_data_base
 hdbscan
 numpy
