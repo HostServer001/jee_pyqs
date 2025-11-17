@@ -436,16 +436,6 @@ def render_cluster_to_html_skim(cluster_dict: dict, filepath: str = "clusters_re
                 explanation_entries.append(f"<li><strong>Q{idx}:</strong> {explanation_html}</li>")
 
         cluster_html = cluster_html_skim_fx(label_title_html,size,q_blocks)
-        if explanation_entries:
-            cluster_html += f"""
-      <div class="cluster-explanations">
-        <h4>Explanations</h4>
-        <ol class="explanations">
-{"".join(explanation_entries)}
-        </ol>
-      </div>
-"""
-        cluster_html += "\n    </section>\n"
         cluster_blocks.append(cluster_html)
 
     clusters_html = "\n".join(cluster_blocks)
