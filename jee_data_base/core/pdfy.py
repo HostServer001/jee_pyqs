@@ -423,7 +423,7 @@ def render_cluster_to_html_skim(cluster_dict: dict, filepath: str = "clusters_re
             if options_html_items:
                 options_html = "<ol class='options' type='A'>\n" + "\n".join(options_html_items) + "\n</ol>"
 
-            q_block = q_block_fx(idx,exam_html,q_text,options_html)
+            q_block = q_block_skim_fx(idx,exam_html,q_text,options_html,q)
             q_blocks.append(q_block)
 
             answer_label = make_inline(get_answer_label(q))
@@ -435,7 +435,7 @@ def render_cluster_to_html_skim(cluster_dict: dict, filepath: str = "clusters_re
                 explanation_html = make_inline(explanation)
                 explanation_entries.append(f"<li><strong>Q{idx}:</strong> {explanation_html}</li>")
 
-        cluster_html = cluster_html_skim_fx(label_title_html,size,q_blocks,q,get_answer_label(q))
+        cluster_html = cluster_html_skim_fx(label_title_html,size,q_blocks)
         if explanation_entries:
             cluster_html += f"""
       <div class="cluster-explanations">
