@@ -91,4 +91,15 @@ def final_html_cluster_fx(title,style,cluster_dict,total_questions,summary_html,
 </html>
 """
     return final_html
+def cluster_html_skim_fx(label_title_html,size,q_blocks,q,ans_label):
+   cluster_html = f"""
+<section class="cluster">
+  <h3>{label_title_html} <span class="cluster-size">({size})</span></h3>
+  <div class="cluster-questions">
+{"".join(q_blocks)}
+  </div>
+  <div class="cluster-explanation"> {ans_label}</div>
+   <div class="cluster-explanation"> {make_inline(getattr(q,'explanation',''))}</div>
+"""
+   return cluster_html
     
