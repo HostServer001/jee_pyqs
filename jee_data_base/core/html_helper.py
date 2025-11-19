@@ -111,6 +111,8 @@ def cluster_html_skim_fx(label_title_html,size,q_blocks):
   <h3>{label_title_html} <span class="cluster-size">({size})</span></h3>
   <div class="cluster-questions">
 {"".join(q_blocks)}
+</div>
+</section>
 """
    return cluster_html
     
