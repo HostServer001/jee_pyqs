@@ -1,19 +1,16 @@
 """
 This file has Filter class
 """
-
 import os
-import time
 import json
-from .pdf_engine import PdfEngine
 from pathlib import Path
 import hdbscan
 import numpy as np
 import datetime as dt
-from typing import Literal, Self
+from typing import Self
 from .cache import Cache
 from . import cache_path,schema_version
-from .pdfy import get_html,get_cluster_html,get_cluster_skim_html
+from .pdfy import render_cluster_to_html_skim,render_cluster_to_html
 #from core.data_base import cache_path,schema_version
 #from sklearn.preprocessing import StandardScaler
 
@@ -139,107 +136,29 @@ class Filter:
 
     def get(self)->list:
         return self.current_set
-
-    async def render_chap_lastNyrs(
-            self,
-            destination:str,
-            chap_name:str,
-            N:int=5,
-            skim:bool=True,
-            output_file_format:Literal["html","pdf"]="html"
-            )->None:
-        all_q = self.by_chapter(chap_name).by_n_last_yrs(N).get()
-        os.makedirs(str(Path(destination)/chap_name),exist_ok=True)
-        files = []
+    
+    def render_chap_last5yrs(self,destination:str,chap_name:str,skim:bool=True)->None:
+        self.reset()
+        all_q = self.by_chapter(chap_name).by_n_last_yrs(5).get()
+        os.mkdir(str(Path(destination)/chap_name))
+        print(self.get_possible_filter_values())
         for topic in self.get_possible_filter_values()["topic"]:
-            file_path = str(Path(destination)/chap_name/f"{topic}.{output_file_format}")
+            file_path = str(Path(destination)/chap_name/f"{topic}.html")
             self.current_set = all_q
             self.by_topic(topic)
-            file = await self.render(
-                file_path,
-                output_file_format=output_file_format,
-                cluster=True,
-                skim = skim,
-                title = chap_name
-            )
-            files.append(file)
-        return files
-    
-
-    def get_final_path(self, file_path: Path, title: str, output_file_format: Literal["html", "pdf"]):
-        if file_path.is_dir():
-            final_path = file_path / f"{title}.{output_file_format}"
-        if file_path.exists() and file_path.is_file() and file_path.suffix == f".{output_file_format}":
-            final_path = file_path
-        if not file_path.exists() and file_path.suffix == f".{output_file_format}":
-            final_path = file_path
-        # else:
-        #     raise ValueError(f"Invalid file path: {file_path}")
-        print(final_path)
-        return final_path
-
-    
-    async def render(
-            self,
-            file_path,
-            output_file_format:Literal["html","pdf"]="html",
-            cluster:bool=False,
-            skim:bool=False,
-            style:Literal["dark","white"]="dark",
-            title:str= False
-            )->Path:
-        """
-        Converts current set to html/pdf based on the arugment given.
-        :param: 
-        - file_path: output file path / directory . If you are given a file path also mention suffix
-                    the suffix should match your output_file_format argument
-        - output_file_format: html/pdf recommended to use html cause convert to pdf can take time and may
-                        not work on android
-        - cluster: True/False whether you want to cluster the questions. default False
-                clustering numerous questions can become computaionally expensive and time consuming
-        - skim: True/False wheater to enable skim mode. Default false
-        - style: dark/white theme of output file
-        - title: title of html
-        """
-        if title == False:
-            title = f"Rendered_{str(time.time()).split('.')[0]}"
-        if output_file_format not in ("html","pdf"):
-            raise ValueError("We don't support this file format. Supported file formats are 'html','pdf'")
-        
-        if cluster == True and skim == True:
-            html = get_cluster_skim_html(
-                cluster_dict=self.cluster(),
-                title=title,
-                mode=style
+            cluster = self.cluster()
+            if skim:
+                render_cluster_to_html_skim(
+                    cluster,
+                    file_path,
+                    topic
                 )
-        if cluster == True and skim == False:
-            html = get_cluster_html(
-                cluster_dict=self.cluster(),
-                title=title,
-                mode=style
-            )
-        
-        if cluster == False:
-            html = get_html(
-                self.current_set,
-                style=style
-            )
-        
-        file_path = Path(file_path).resolve()
-        final_path = self.get_final_path(file_path,title,output_file_format)
-
-        
-        if output_file_format == "html":
-            with open(final_path,"w",encoding="utf-8")as file:
-                file.write(html)
-            return final_path
-        
-        if output_file_format == "pdf":
-            pdf_engine = PdfEngine(html)
-            # await self._convert_html_to_pdf_with_images(html,final_path)
-            await pdf_engine.render(final_path)
-            return final_path
-
+            else:
+                render_cluster_to_html(
+                    cluster,
+                    file_path,
+                    topic
+                )
 
     def cluster(self)->dict:
         """

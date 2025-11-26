@@ -59,15 +59,15 @@ def page_zip_exporter():
     # -------------------
     chapters = sorted(data_base.chapters_dict.keys())
     chapter = st.selectbox("Select Chapter", chapters)
-    n_yrs = 2026-st.select_slider("Last N yrs",options=reversed([i for i in range(2004,2026)]))
-    print(n_yrs)
+    # n_yrs = 2026-st.select_slider("Last N yrs",options=reversed([i for i in range(2004,2026)]))
+    # print(n_yrs)
 
     skim = st.checkbox("Enable Skim Mode", value=False)
-    pdf_output = st.checkbox("PDF files(takes time to render)",value=False)
-    if pdf_output:
-        file_format = "pdf"
-    else:
-        file_format = "html"
+    # pdf_output = st.checkbox("PDF files(takes time to render)",value=False)
+    # if pdf_output:
+    #     file_format = "pdf"
+    # else:
+    #     file_format = "html"
 
     st.markdown("Generates a folder → Zips it → Lets you download ZIP.")
 
@@ -77,15 +77,13 @@ def page_zip_exporter():
             out_folder = temp_root / chapter
 
             # Step 1 → Call your module method
-            asyncio.run(filter.render_chap_lastNyrs(
+            asyncio.run(filter.render_chap_last5yrs(
                 destination=str(temp_root), 
                 chap_name=chapter, 
                 skim=skim,
-                output_file_format=file_format,
-                N=n_yrs
                 ))
             # Step 2 → Zip the folder
-            zip_path = temp_root / f"{chapter.replace(' ', '_')}-last-{n_yrs}-years.zip"
+            zip_path = temp_root / f"{chapter.replace(' ', '_')}.zip"
             with ZipFile(zip_path, "w") as zipf:
                 for file in out_folder.rglob("*"):
                     zipf.write(file, file.relative_to(out_folder.parent))
