@@ -23,20 +23,7 @@ def make_inline(s: str) -> str:
         s = s.replace(r"\[", r"\(").replace(r"\]", r"\)")
         return s
 
-def q_block_fx(index,exam_date_html,q_text,options_html):
-    q_block = f"""
-      <div class="question-block">
-        <div class="question-header">
-          <span class="q-number">Q{index}.</span>{exam_date_html}
-        </div>
-        <div class="q-text">{q_text}</div>
-        <div class="q-options">{options_html}</div>
-      </div>
-    """
-    return q_block
-
-
-def q_block_skim_fx(idx,exam_html,q_text,options_html,q):
+def q_block_fx(idx,exam_html,q_text,options_html):
     q_block = f"""
       <div class="question-block">
         <div class="question-header">
@@ -44,8 +31,7 @@ def q_block_skim_fx(idx,exam_html,q_text,options_html,q):
         </div>
         <div class="q-text">{q_text}</div>
         <div class="q-options">{options_html}</div>
-        <div class="cluster-explanation"> {make_inline(getattr(q,'explanation',''))}</div>
-        </div>
+      </div>
     """
     return q_block
 
@@ -61,16 +47,6 @@ def cluster_html_fx(label_title_html,size,q_blocks,answer_entries):
     <ol class="answer-key" style="list-style-type: none;">
 {"".join(answer_entries)}
     </ol>
-  </div>
-"""
-   return cluster_html
-
-def cluster_html_skim_fx(label_title_html,size,q_blocks):
-   cluster_html = f"""
-<section class="cluster">
-  <h3>{label_title_html} <span class="cluster-size">({size})</span></h3>
-  <div class="cluster-questions">
-{"".join(q_blocks)}
   </div>
 """
    return cluster_html
@@ -116,29 +92,27 @@ def final_html_cluster_fx(title,style,cluster_dict,total_questions,summary_html,
 """
     return final_html
 
-def final_html_fx(style_theme,questions_html,answer_key_html,explanation_key_html):
-    html = rf"""
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Questions</title>
-  <script id="MathJax-script" async
-    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
-  </script>
-  {style_theme}
-</head>
-<body>
-  <div class="container">
-    <h2>Questions</h2>
-{questions_html}
-    <div class="answer-section">
-      <h3>Answer Key</h3>
-{answer_key_html}
-    </div>
-{explanation_key_html}
-  </div>
-</body>
-</html>
+def q_block_skim_fx(idx,exam_html,q_text,options_html,q):
+    q_block = f"""
+      <div class="question-block">
+        <div class="question-header">
+          <span class="q-number">Q{idx}.</span>{exam_html}
+        </div>
+        <div class="q-text">{q_text}</div>
+        <div class="q-options">{options_html}</div>
+        <div class="cluster-explanation"> {make_inline(getattr(q,'explanation',''))}</div>
+        </div>
+    """
+    return q_block
+
+def cluster_html_skim_fx(label_title_html,size,q_blocks):
+   cluster_html = f"""
+<section class="cluster">
+  <h3>{label_title_html} <span class="cluster-size">({size})</span></h3>
+  <div class="cluster-questions">
+{"".join(q_blocks)}
+</div>
+</section>
 """
-    return html
+   return cluster_html
+    

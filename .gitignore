@@ -1,0 +1,10 @@
+dist/
+__pycache__/
+jee_data_base/cache/
+*.egg-info/
+*.pkl
+*.pyc
+*.pyo
+*.pyd
+\[ignore\]*
+.pytest_cache

@@ -1,12 +1,10 @@
 import streamlit as st
 import tempfile
-import shutil
 from pathlib import Path
 from zipfile import ZipFile
 import json
-
+import asyncio
 from jee_data_base import DataBase, Filter, pdfy
-#import components as components
 
 
 st.html("""
@@ -19,6 +17,8 @@ st.html("""
 
   gtag('config', 'G-VMLMXMCJLK');
 </script>""")
+
+
 # -------------------------------
 # Init session state
 # -------------------------------
@@ -42,7 +42,7 @@ st.set_page_config(page_title="Question Overflow 📚", layout="wide")
 # ============================================================
 # ===============  PAGE 1 → ZIP EXPORTER (MAIN) ==============
 # ============================================================
-def page_zip_exporter():
+async def page_zip_exporter():
     st.title("📦 Last 5 Years Chapter ZIP Exporter")
 
     # Load DB
@@ -51,15 +51,23 @@ def page_zip_exporter():
         db = DataBase()
         return db, Filter(db.chapters_dict)
 
-    db, f = load_db()
-
+    data_base, filter = load_db()
+    
+    st.image("assests/image.png",clamp=True,use_container_width=True,width="stretch")
     # -------------------
     # UI
     # -------------------
-    chapters = sorted(db.chapters_dict.keys())
+    chapters = sorted(data_base.chapters_dict.keys())
     chapter = st.selectbox("Select Chapter", chapters)
+    n_yrs = 2026-st.select_slider("Last N yrs",options=reversed([i for i in range(2004,2026)]))
+    print(n_yrs)
 
     skim = st.checkbox("Enable Skim Mode", value=False)
+    # pdf_output = st.checkbox("PDF files(takes time to render)",value=False)
+    # if pdf_output:
+    #     file_format = "pdf"
+    # else:
+    #     file_format = "html"
 
     st.markdown("Generates a folder → Zips it → Lets you download ZIP.")
 
@@ -69,15 +77,21 @@ def page_zip_exporter():
             out_folder = temp_root / chapter
 
             # Step 1 → Call your module method
-            f.render_chap_last5yrs(str(temp_root), chapter, skim)
-
+            await filter.render_chap_lastNyrs(
+                destination=str(temp_root), 
+                chap_name=chapter, 
+                skim=skim,
+                output_file_format="html",
+                N=n_yrs
+                )
             # Step 2 → Zip the folder
-            zip_path = temp_root / f"{chapter.replace(' ', '_')}.zip"
+            zip_path = temp_root / f"{chapter.replace(' ', '_')}-last-{n_yrs}-years.zip"
             with ZipFile(zip_path, "w") as zipf:
                 for file in out_folder.rglob("*"):
                     zipf.write(file, file.relative_to(out_folder.parent))
 
         st.success("ZIP generated!")
+        filter.reset()
 
         st.download_button(
             "⬇️ Download ZIP",
@@ -113,18 +127,18 @@ def page_advanced_explorer():
         with st.spinner("Loading DB..."):
             try:
                 db = DataBase()
-                f = Filter(db.chapters_dict)
+                filter = Filter(db.chapters_dict)
                 st.session_state.db = db
-                st.session_state.filter = f
-                st.session_state.status = f"Loaded {len(f.current_set)} questions."
+                st.session_state.filter = filter
+                st.session_state.status = f"Loaded {len(filter.current_set)} questions."
             except Exception as e:
                 st.error(f"Load failed: {e}")
 
     st.caption(f"Status: {st.session_state.status}")
     st.markdown("---")
 
-    f = st.session_state.filter
-    if not f:
+    filter = st.session_state.filter
+    if not filter:
         st.info("Click 'Load Database' first.")
         if st.button("⬅️ Back to ZIP Exporter"):
             st.session_state.page = "zip_exporter"
@@ -137,10 +151,10 @@ def page_advanced_explorer():
     st.subheader("Filters")
 
     try:
-        possible = f.get_possible_filter_values()
+        possible = filter.get_possible_filter_values()
         params = sorted(possible.keys())
     except:
-        params = sorted(list(getattr(f, "filterable_param", [])))
+        params = sorted(list(getattr(filter, "filterable_param", [])))
 
     field = st.selectbox("Field", [""] + params)
     if field:
@@ -180,7 +194,7 @@ def page_advanced_explorer():
                                 target_val = value
 
                     new_set = []
-                    for q in f.current_set:
+                    for q in filter.current_set:
                         attr = getattr(q, field, None)
 
                         # Compare complex types
@@ -193,7 +207,7 @@ def page_advanced_explorer():
                             if attr == target_val:
                                 new_set.append(q)
 
-                    f.current_set = new_set
+                    filter.current_set = new_set
                     st.session_state.status = f"Filtered to {len(new_set)} questions."
                 except Exception as e:
                     st.error(f"Filtering failed: {e}")
@@ -215,7 +229,7 @@ def page_advanced_explorer():
     st.subheader("Questions")
 
     rows = []
-    for q in f.current_set:
+    for q in filter.current_set:
         rows.append({
             "ID": getattr(q, "question_id", ""),
             "Exam": getattr(q, "exam", ""),
@@ -237,7 +251,7 @@ def page_advanced_explorer():
         if st.button("Run Clustering"):
             with st.spinner("Clustering..."):
                 try:
-                    clusters = f.cluster()
+                    clusters = filter.cluster()
                     st.session_state.clusters = clusters
                     st.session_state.status = f"Clustered into {len(clusters)} groups."
                 except Exception as e:
@@ -282,6 +296,6 @@ The data base was obtained by reverse engineering a popular JEE prep website.
 # =============== PAGE ROUTER (ONE FILE ONLY) ================
 # ============================================================
 if st.session_state.page == "zip_exporter":
-    page_zip_exporter()
+    asyncio.run(page_zip_exporter())
 else:
     page_advanced_explorer()

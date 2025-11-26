@@ -1,153 +1,36 @@
-import re
 from .styles import dark_style,white_style
 from .html_helper import *
+from .types import *
+from .pdfy_support import (
+    get_exam_html,
+    get_answer_label_normal,
+    get_answer_label_clustering,
+    get_labels_sorted,
+    get_options_html,
+    convert_dollar_math_to_inline,
+    make_inline,
+    )
 
-def convert_dollar_math_to_inline(text: str) -> str:
-    """
-    Convert TeX math delimiters:
-      - $$...$$ -> \[ ... \]  (display)
-      - $...$   -> \( ... \)  (inline)
-    Preserves escaped dollars (i.e. \$).
-    """
-    if not isinstance(text, str):
-        return text
-
-    # Temporarily protect escaped dollars
-    placeholder = "<<DOLLAR_ESCAPED>>"
-    text = text.replace(r"\$", placeholder)
-
-    # Convert $$...$$ -> \[...\]
-    text = re.sub(r'\$\$([\s\S]+?)\$\$', lambda m: f"\\[{m.group(1)}\\]", text, flags=re.S)
-
-    # Convert single $...$ -> \(...\) (avoid $$ which already handled)
-    text = re.sub(r'(?<!\\)\$([^\$].*?)\$', lambda m: f"\\({m.group(1)}\\)", text, flags=re.S)
-
-    # Restore escaped dollars
-    text = text.replace(placeholder, r"\$")
-
-    return text
-
-def conv_to_html_mathjax(text: str, filename: str = "mathjax_render.html"):
-    """
-    Converts LaTeX math in $$...$$ to inline MathJax format and writes it into an HTML file.
-    """
-    converted_text = convert_dollar_math_to_inline(text)
-
-    html = rf"""
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Inline MathJax</title>
-  <script id="MathJax-script" async
-    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
-  </script>
-  <style>
-    body {{
-      font-family: Arial, sans-serif;
-      margin: 50px;
-      font-size: 18px;
-    }}
-  </style>
-</head>
-<body>
-  <p>{converted_text}</p>
-</body>
-</html>
-"""
-    with open(filename, "w", encoding="utf-8") as f:
-        f.write(html)
-
-
-
-def render_to_html(question_list: list, filename: str = "questions_render.html",style:str="dark"):
-    """
-    Renders a list of Question objects into a styled HTML file with MathJax support.
-    Each question and its options are added. An answer key section is produced at the end.
-    Exam date (examDate) is shown beside a question if present.
-
-    Updates:
-    - Use Question.answer for numerical/integer type questions as fallback.
-    - Robust handling of correct_options (ints, digit-strings, letters).
-    - Add Explanation Answer Key section after the answer key containing per-question explanations.
-    """
-    def format_correct_options(correct_options):
-        if not correct_options:
-            return ""
-        labels = []
-        for opt in correct_options:
-            if isinstance(opt, int):
-                labels.append(chr(ord("A") + opt))
-            elif isinstance(opt, str) and opt.isdigit():
-                labels.append(chr(ord("A") + int(opt)))
-            else:
-                labels.append(str(opt))
-        return ", ".join(labels)
-
-    def get_answer_label(q):
-        # 1) If question has explicit 'answer' (numerical types), use it
-        qtype = getattr(q, "type", "") or ""
-        if qtype.lower() in ("integer", "numerical", "numeric", "number"):
-            ans = getattr(q, "answer", None)
-            if ans is not None and ans != "":
-                return convert_dollar_math_to_inline(str(ans))
-
-        # 2) Use correct_options if available
-        corr = getattr(q, "correct_options", None)
-        if corr:
-            if not isinstance(corr, (list, tuple)):
-                corr = [corr]
-            return format_correct_options(corr)
-
-        # 3) Common fallback fields
-        for attr in ("answer", "correct_answer", "solution", "correct"):
-            val = getattr(q, attr, None)
-            if val:
-                if isinstance(val, (list, tuple)):
-                    return format_correct_options(val)
-                return convert_dollar_math_to_inline(str(val))
-
-        # 4) Try explanation numeric extraction (best-effort)
-        exp = getattr(q, "explanation", "") or ""
-        m = re.search(r'([-+]?\d+(\.\d+)?)', exp)
-        if m:
-            return m.group(1)
-
-        return ""
-
-    # Build questions HTML
+def get_html(question_list: list,style:str="dark")->HtmlLike:
     q_blocks = []
     answer_entries = []
     explanation_entries = []
-    for idx, q in enumerate(question_list, start=1):
-        q_text = convert_dollar_math_to_inline(getattr(q, "question", ""))
-        exam_date = getattr(q, "examDate", None)
-        exam_html = f" <span class='exam-date'>[{exam_date}]</span>" if exam_date else ""
+    for index, question in enumerate(question_list, start=1):
+        q_text = convert_dollar_math_to_inline(getattr(question, "question", ""))
+        exam_html = get_exam_html(question)
+        options_html = get_options_html(question)
 
-        # Options: expect list of dicts with "content"
-        options_html_items = []
-        options = getattr(q, "options", []) or []
-        for opt_i, opt in enumerate(options):
-            content = opt.get("content") if isinstance(opt, dict) else str(opt)
-            content_conv = convert_dollar_math_to_inline(content)
-            options_html_items.append(f"<li class='option'>{content_conv}</li>")
-
-        options_html = ""
-        if options_html_items:
-            options_html = "<ol class='options' type='A'>\n" + "\n".join(options_html_items) + "\n</ol>"
-
-        q_block = q_block_fx(idx,exam_html,q_text,options_html)
+        q_block = q_block_fx(index,exam_html,q_text,options_html)
         q_blocks.append(q_block)
 
-        # Prepare answer key entry (robust)
-        answer_label = get_answer_label(q)
-        answer_entries.append(f"<li>Q{idx}: <strong>{answer_label}</strong></li>")
+        answer_label = get_answer_label_normal(question)
+        answer_entries.append(f"<li>Q{index}: <strong>{answer_label}</strong></li>")
 
-        # Prepare explanation entry (if exists)
-        explanation = getattr(q, "explanation", "") or ""
+
+        explanation = getattr(question, "explanation", "") or ""
         if explanation and explanation.strip():
             explanation_html = convert_dollar_math_to_inline(explanation)
-            explanation_entries.append(f"<li><strong>Q{idx}:</strong> {explanation_html}</li>")
+            explanation_entries.append(f"<li><strong>Q{index}:</strong> {explanation_html}</li>")
 
     questions_html = "\n".join(q_blocks)
     answer_key_html = "<ol class='answer-key' list-style-type=none;>\n" + "\n".join(answer_entries) + "\n</ol>"
@@ -160,36 +43,11 @@ def render_to_html(question_list: list, filename: str = "questions_render.html",
         style_theme = dark_style
     if style == "white":
         style_theme == white_style
-    html = rf"""
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Questions</title>
-  <script id="MathJax-script" async
-    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
-  </script>
-  {style_theme}
-</head>
-<body>
-  <div class="container">
-    <h2>Questions</h2>
-{questions_html}
-    <div class="answer-section">
-      <h3>Answer Key</h3>
-{answer_key_html}
-    </div>
-{explanation_key_html}
-  </div>
-</body>
-</html>
-"""
+    
+    html = final_html_fx(style_theme,questions_html,answer_key_html,explanation_key_html)
+    return html
 
-    with open(filename, "w", encoding="utf-8") as f:
-        f.write(html)
-
-# ...existing code...
-def render_cluster_to_html(cluster_dict: dict, filepath: str = "clusters_render.html", title: str = "Clustered Questions",mode:str="dark"):
+def get_cluster_html(cluster_dict: dict,title: str = "Clustered Questions",mode:str="dark")->HtmlLike:
     """
     Render clustered questions into an HTML file.
 
@@ -199,61 +57,9 @@ def render_cluster_to_html(cluster_dict: dict, filepath: str = "clusters_render.
       so MathJax renders everything inline.
     - Accepts cluster keys that may be numpy integer types (e.g. np.int64).
     """
-    def make_inline(s: str) -> str:
-        if not isinstance(s, str):
-            s = str(s)
-        # First convert $...$ / $$...$$ using existing helper
-        s = convert_dollar_math_to_inline(s)
-        # Then force any \[ ... \] to inline \( ... \) to avoid display math blocks
-        s = s.replace(r"\[", r"\(").replace(r"\]", r"\)")
-        return s
 
-    def format_correct_options(correct_options):
-        if not correct_options:
-            return ""
-        labels = []
-        for opt in correct_options:
-            if isinstance(opt, int):
-                labels.append(chr(ord("A") + opt))
-            elif isinstance(opt, str) and opt.isdigit():
-                labels.append(chr(ord("A") + int(opt)))
-            else:
-                labels.append(str(opt))
-        return ", ".join(labels)
-
-    def get_answer_label(q):
-        qtype = getattr(q, "type", "") or ""
-        if isinstance(qtype, str) and qtype.lower() in ("integer", "numerical", "numeric", "number"):
-            ans = getattr(q, "answer", None)
-            if ans is not None and ans != "":
-                return make_inline(str(ans))
-
-        corr = getattr(q, "correct_options", None)
-        if corr:
-            if not isinstance(corr, (list, tuple)):
-                corr = [corr]
-            return format_correct_options(corr)
-
-        for attr in ("answer", "correct_answer", "solution", "correct"):
-            val = getattr(q, attr, None)
-            if val:
-                if isinstance(val, (list, tuple)):
-                    return format_correct_options(val)
-                return make_inline(str(val))
-
-        exp = getattr(q, "explanation", "") or ""
-        m = re.search(r'([-+]?\d+(\.\d+)?)', exp)
-        if m:
-            return m.group(1)
-
-        return ""
-
-    # Normalize and sort cluster labels; put noise (-1) last
     labels = list(cluster_dict.keys())
-    try:
-        labels_sorted = sorted(labels, key=lambda x: (int(x) == -1, int(x)))
-    except Exception:
-        labels_sorted = sorted(labels, key=lambda x: (str(x) == "-1", str(x)))
+    labels_sorted = get_labels_sorted(labels)
 
     cluster_blocks = []
     summary_entries = []
@@ -275,33 +81,23 @@ def render_cluster_to_html(cluster_dict: dict, filepath: str = "clusters_render.
         answer_entries = []
         explanation_entries = []
 
-        for idx, q in enumerate(q_list, start=1):
-            q_text = make_inline(getattr(q, "question", ""))
-            exam_date = getattr(q, "examDate", None)
-            exam_html = f" <span class='exam-date'>[{make_inline(exam_date)}]</span>" if exam_date else ""
+        for index, question in enumerate(q_list, start=1):
+            q_text = make_inline(getattr(question, "question", ""))
+            exam_html = get_exam_html(question)
 
-            options_html_items = []
-            options = getattr(q, "options", []) or []
-            for opt_i, opt in enumerate(options):
-                content = opt.get("content") if isinstance(opt, dict) else str(opt)
-                content_conv = make_inline(content)
-                options_html_items.append(f"<li class='option'>{content_conv}</li>")
+            options_html = get_options_html(question)
 
-            options_html = ""
-            if options_html_items:
-                options_html = "<ol class='options' type='A'>\n" + "\n".join(options_html_items) + "\n</ol>"
-
-            q_block_var = q_block_fx(idx,exam_html,q_text,options_html)
+            q_block_var = q_block_fx(index,exam_html,q_text,options_html)
             q_blocks.append(q_block_var)
 
-            answer_label = make_inline(get_answer_label(q))
+            answer_label = make_inline(get_answer_label_clustering(question))
             # if answer label empty, show placeholder
-            answer_entries.append(f"<li>Q{idx}: <strong>{answer_label or ''}</strong></li>")
+            answer_entries.append(f"<li>Q{index}: <strong>{answer_label or ''}</strong></li>")
 
-            explanation = getattr(q, "explanation", "") or ""
+            explanation = getattr(question, "explanation", "") or ""
             if explanation and explanation.strip():
                 explanation_html = make_inline(explanation)
-                explanation_entries.append(f"<li><strong>Q{idx}:</strong> {explanation_html}</li>")
+                explanation_entries.append(f"<li><strong>Q{index}:</strong> {explanation_html}</li>")
 
         cluster_html = cluster_html_fx(label_title_html,size,q_blocks,answer_entries)
         if explanation_entries:
@@ -317,11 +113,9 @@ def render_cluster_to_html(cluster_dict: dict, filepath: str = "clusters_render.
     else:
         style = white_style
     html = final_html_cluster_fx(title,style,cluster_dict,total_questions,summary_html,clusters_html)
-    with open(filepath, "w", encoding="utf-8") as f:
-    	f.write(html)
+    return html
 
-
-def render_cluster_to_html_skim(cluster_dict: dict, filepath: str = "clusters_render.html", title: str = "Clustered Questions",mode:str="dark"):
+def get_cluster_skim_html(cluster_dict: dict, title: str = "Clustered Questions",mode:str="dark")->HtmlLike:
     """
     Render clustered questions into an HTML file.
 
@@ -331,61 +125,9 @@ def render_cluster_to_html_skim(cluster_dict: dict, filepath: str = "clusters_re
       so MathJax renders everything inline.
     - Accepts cluster keys that may be numpy integer types (e.g. np.int64).
     """
-    def make_inline(s: str) -> str:
-        if not isinstance(s, str):
-            s = str(s)
-        # First convert $...$ / $$...$$ using existing helper
-        s = convert_dollar_math_to_inline(s)
-        # Then force any \[ ... \] to inline \( ... \) to avoid display math blocks
-        s = s.replace(r"\[", r"\(").replace(r"\]", r"\)")
-        return s
-
-    def format_correct_options(correct_options):
-        if not correct_options:
-            return ""
-        labels = []
-        for opt in correct_options:
-            if isinstance(opt, int):
-                labels.append(chr(ord("A") + opt))
-            elif isinstance(opt, str) and opt.isdigit():
-                labels.append(chr(ord("A") + int(opt)))
-            else:
-                labels.append(str(opt))
-        return ", ".join(labels)
-
-    def get_answer_label(q):
-        qtype = getattr(q, "type", "") or ""
-        if isinstance(qtype, str) and qtype.lower() in ("integer", "numerical", "numeric", "number"):
-            ans = getattr(q, "answer", None)
-            if ans is not None and ans != "":
-                return make_inline(str(ans))
-
-        corr = getattr(q, "correct_options", None)
-        if corr:
-            if not isinstance(corr, (list, tuple)):
-                corr = [corr]
-            return format_correct_options(corr)
-
-        for attr in ("answer", "correct_answer", "solution", "correct"):
-            val = getattr(q, attr, None)
-            if val:
-                if isinstance(val, (list, tuple)):
-                    return format_correct_options(val)
-                return make_inline(str(val))
-
-        exp = getattr(q, "explanation", "") or ""
-        m = re.search(r'([-+]?\d+(\.\d+)?)', exp)
-        if m:
-            return m.group(1)
-
-        return ""
-
     # Normalize and sort cluster labels; put noise (-1) last
     labels = list(cluster_dict.keys())
-    try:
-        labels_sorted = sorted(labels, key=lambda x: (int(x) == -1, int(x)))
-    except Exception:
-        labels_sorted = sorted(labels, key=lambda x: (str(x) == "-1", str(x)))
+    labels_sorted = get_labels_sorted(labels)
 
     cluster_blocks = []
     summary_entries = []
@@ -407,35 +149,26 @@ def render_cluster_to_html_skim(cluster_dict: dict, filepath: str = "clusters_re
         answer_entries = []
         explanation_entries = []
 
-        for idx, q in enumerate(q_list, start=1):
-            q_text = make_inline(getattr(q, "question", ""))
-            exam_date = getattr(q, "examDate", None)
-            exam_html = f" <span class='exam-date'>[{make_inline(exam_date)}]</span>" if exam_date else ""
+        for index, question in enumerate(q_list, start=1):
+            q_text = make_inline(getattr(question, "question", ""))
+            exam_html = get_exam_html(question)
 
-            options_html_items = []
-            options = getattr(q, "options", []) or []
-            for opt_i, opt in enumerate(options):
-                content = opt.get("content") if isinstance(opt, dict) else str(opt)
-                content_conv = make_inline(content)
-                options_html_items.append(f"<li class='option'>{content_conv}</li>")
+            options_html = get_options_html(question)
 
-            options_html = ""
-            if options_html_items:
-                options_html = "<ol class='options' type='A'>\n" + "\n".join(options_html_items) + "\n</ol>"
-
-            q_block = q_block_skim_fx(idx,exam_html,q_text,options_html,q)
+            q_block = q_block_skim_fx(index,exam_html,q_text,options_html,question)
             q_blocks.append(q_block)
 
-            answer_label = make_inline(get_answer_label(q))
+            answer_label = make_inline(get_answer_label_clustering(question))
             # if answer label empty, show placeholder
-            answer_entries.append(f"<li>Q{idx}: <strong>{answer_label or ''}</strong></li>")
+            answer_entries.append(f"<li>Q{index}: <strong>{answer_label or ''}</strong></li>")
 
-            explanation = getattr(q, "explanation", "") or ""
+            explanation = getattr(question, "explanation", "") or ""
             if explanation and explanation.strip():
                 explanation_html = make_inline(explanation)
-                explanation_entries.append(f"<li><strong>Q{idx}:</strong> {explanation_html}</li>")
+                explanation_entries.append(f"<li><strong>Q{index}:</strong> {explanation_html}</li>")
 
         cluster_html = cluster_html_skim_fx(label_title_html,size,q_blocks)
+        
         cluster_blocks.append(cluster_html)
 
     clusters_html = "\n".join(cluster_blocks)
@@ -445,34 +178,5 @@ def render_cluster_to_html_skim(cluster_dict: dict, filepath: str = "clusters_re
         style = dark_style
     else:
         style = white_style
-    html = rf"""<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <title>{make_inline(title)}</title>
-  <script id="MathJax-script" async
-    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
-  </script>
-  {style}
-</head>
-<body>
-  <div class="container">
-    <header>
-      <h1>{make_inline(title)}</h1>
-      <div class="meta">Total clusters: {len(cluster_dict)}, Total questions: {total_questions}</div>
-    </header>
-    <div class="summary">
-      <h4>Cluster Summary</h4>
-{summary_html}
-    </div>
-{clusters_html}
-  </div>
-</body>
-</html>
-"""
-    with open(filepath, "w", encoding="utf-8") as f:
-        f.write(html)
-
-# ...existing code...
+    html = final_html_cluster_fx(title,style,cluster_dict,total_questions,summary_html,clusters_html)
+    return html
