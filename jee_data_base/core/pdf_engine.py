@@ -1,3 +1,4 @@
+import os
 import uuid
 import PyPDF2
 import tempfile
@@ -79,6 +80,7 @@ class PdfEngine:
         except Error as e:
             #for ci/cd pipeline and for environments which
             #do do not support sandboxxing
+            os.system("playwright install")
             browser = await p.chromium.launch(
                 headless=True,
                 args=[
