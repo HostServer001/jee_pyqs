@@ -80,7 +80,8 @@ class PdfEngine:
         except Error as e:
             #for ci/cd pipeline and for environments which
             #do do not support sandboxxing
-            os.system("playwright install")
+            os.system("playwright install chromium")
+            os.system("playwright install-deps")
             browser = await p.chromium.launch(
                 headless=True,
                 args=[
