@@ -42,7 +42,7 @@ st.set_page_config(page_title="Question Overflow 📚", layout="wide")
 # ============================================================
 # ===============  PAGE 1 → ZIP EXPORTER (MAIN) ==============
 # ============================================================
-async def page_zip_exporter():
+def page_zip_exporter():
     st.title("📦 Last 5 Years Chapter ZIP Exporter")
 
     # Load DB
@@ -63,11 +63,11 @@ async def page_zip_exporter():
     print(n_yrs)
 
     skim = st.checkbox("Enable Skim Mode", value=False)
-    # pdf_output = st.checkbox("PDF files(takes time to render)",value=False)
-    # if pdf_output:
-    #     file_format = "pdf"
-    # else:
-    #     file_format = "html"
+    pdf_output = st.checkbox("PDF files(takes time to render)",value=False)
+    if pdf_output:
+        file_format = "pdf"
+    else:
+        file_format = "html"
 
     st.markdown("Generates a folder → Zips it → Lets you download ZIP.")
 
@@ -77,13 +77,13 @@ async def page_zip_exporter():
             out_folder = temp_root / chapter
 
             # Step 1 → Call your module method
-            await filter.render_chap_lastNyrs(
+            asyncio.run(filter.render_chap_lastNyrs(
                 destination=str(temp_root), 
                 chap_name=chapter, 
                 skim=skim,
-                output_file_format="html",
+                output_file_format=pdf_output,
                 N=n_yrs
-                )
+                ))
             # Step 2 → Zip the folder
             zip_path = temp_root / f"{chapter.replace(' ', '_')}-last-{n_yrs}-years.zip"
             with ZipFile(zip_path, "w") as zipf:
@@ -296,6 +296,6 @@ The data base was obtained by reverse engineering a popular JEE prep website.
 # =============== PAGE ROUTER (ONE FILE ONLY) ================
 # ============================================================
 if st.session_state.page == "zip_exporter":
-    asyncio.run(page_zip_exporter())
+    page_zip_exporter()
 else:
     page_advanced_explorer()
