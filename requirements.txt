@@ -4,3 +4,5 @@ hdbscan
 numpy
 requests
 tqdm
+PyPDF2
+playwright
