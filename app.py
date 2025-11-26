@@ -81,7 +81,7 @@ def page_zip_exporter():
                 destination=str(temp_root), 
                 chap_name=chapter, 
                 skim=skim,
-                output_file_format=pdf_output,
+                output_file_format=file_format,
                 N=n_yrs
                 ))
             # Step 2 → Zip the folder
