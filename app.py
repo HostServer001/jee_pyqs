@@ -3,7 +3,6 @@ import tempfile
 from pathlib import Path
 from zipfile import ZipFile
 import json
-import asyncio
 from jee_data_base import DataBase, Filter, pdfy
 
 
@@ -77,11 +76,11 @@ def page_zip_exporter():
             out_folder = temp_root / chapter
 
             # Step 1 → Call your module method
-            asyncio.run(filter.render_chap_last5yrs(
+            filter.render_chap_last5yrs(
                 destination=str(temp_root), 
                 chap_name=chapter, 
                 skim=skim,
-                ))
+                )
             # Step 2 → Zip the folder
             zip_path = temp_root / f"{chapter.replace(' ', '_')}.zip"
             with ZipFile(zip_path, "w") as zipf:
