@@ -2,6 +2,7 @@ streamlit
 #streamlit-components
 #hdbscan
 numpy
+sklearn
 requests
 tqdm
 PyPDF2
