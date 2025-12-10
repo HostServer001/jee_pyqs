@@ -1,8 +1,8 @@
 streamlit
 #streamlit-components
-#hdbscan
+hdbscan
 numpy
-scikit-learn
+scikit-learn==1.5
 requests
 tqdm
 PyPDF2
