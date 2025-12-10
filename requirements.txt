@@ -1,6 +1,6 @@
 streamlit
 #streamlit-components
-hdbscan
+#hdbscan
 numpy
 requests
 tqdm
