@@ -6,17 +6,6 @@ import json
 from jee_data_base import DataBase, Filter, pdfy
 
 
-st.html("""
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-VMLMXMCJLK"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-VMLMXMCJLK');
-</script>""")
-
 
 # -------------------------------
 # Init session state
@@ -110,6 +99,7 @@ This tool provides 14,000+ JEE Mains PYQs with fast filtering, clustering, and c
 Questions are [semantically embedded](https://en.wikipedia.org/wiki/Sentence_embedding) for grouping similar problems.
 
 The data base was obtained by reverse engineering a popular JEE prep website.
+[Souce code](https://github.com/HostServer001/jee_mains_pyqs_data_base) of the python module
 """)
 
 
@@ -285,7 +275,7 @@ This tool provides 14,000+ JEE Mains PYQs with fast filtering, clustering, and c
 Questions are [semantically embedded](https://en.wikipedia.org/wiki/Sentence_embedding) for grouping similar problems.
 
 The data base was obtained by reverse engineering a popular JEE prep website.
-
+[Souce code](https://github.com/HostServer001/jee_mains_pyqs_data_base) of the python module
 """)
 
 
